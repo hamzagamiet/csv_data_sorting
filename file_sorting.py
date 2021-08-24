@@ -12,8 +12,19 @@ def main():
     adm_dis_folder = os.path.join(BASE_DIR, "admission_discharge")
     occupancy_folder = os.path.join(BASE_DIR, "occupancy")
     get_invoice(invoices_folder, BASE_DIR)
+    sort_csv_data("master_invoice.csv", "dates")
     get_adm_dis(adm_dis_folder, BASE_DIR)
+    sort_csv_data("master_adm_dis.csv", "dates")
     get_occupancy(occupancy_folder, BASE_DIR)
+    sort_csv_data("master_occupancy.csv", "dates")
+    
+
+def sort_csv_data(file_to_sort, dates_column):
+    csv_data = pd.read_csv(file_to_sort)
+    csv_data[dates_column] = pd.to_datetime(csv_data[dates_column], dayfirst=True)
+    sorted_csv_data = csv_data.sort_values(by=[dates_column], ascending= True)
+    sorted_csv_data.to_csv(file_to_sort, index=False)
+    return
 
 
 def get_invoice_data(data):
@@ -202,17 +213,47 @@ def get_adm_dis(adm_dis_folder, BASE_DIR):
 
 def get_occupancy_data(data):
     context = {
-        "dates": "",
-        "occ_level": "",
+        "dates": [],
+        "occ_level": []
     }
 
     for key in data:
         if "date" in key:
-            context["dates"] = data[key]
+            dates_col = data[key]
         elif "occ" in key and "level" in key:
-            context["occ_level"] = data[key]
+            occ_col = data[key]
 
+    index = 0
+    while index < len(dates_col):
+        check = 1
+        match = True
+        print (index)
+
+        while match:
+            try:
+                if dates_col[index+check] != dates_col[index]:
+                    match = False
+                elif dates_col[index+check] == dates_col[index]:
+                    check += 1
+            except:
+                match = False
+
+        print(f"match for {check}")
+
+        occ_col_tot = 0
+        try:
+            for x in range(check):
+                    occ_col_tot += occ_col[index+x]
+            context["occ_level"].append(occ_col_tot)
+            context["dates"].append(dates_col[index])
+        except:
+            continue
+        index += check
+
+    print (context["occ_level"])
+    print (context["dates"])
     return context
+
 
 
 def occupancy_csv(BASE_DIR, occupancy_data, file_no):
